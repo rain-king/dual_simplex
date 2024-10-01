@@ -4,7 +4,7 @@ use ndarray::{s, Array1 as vector, Array2 as matrix};
 mod preparation;
 use preparation::{original_tableau, initialize};
 
-pub fn dual_simplex(maximize: bool, c: &matrix<f64>, a: &matrix<f64>, b: &matrix<f64>) -> Vec<(usize, usize)> {
+pub fn dual_simplex(maximize: bool, c: &matrix<f64>, a: &matrix<f64>, b: &matrix<f64>) {
 	let mut tableau: matrix<f64>;
 	let mut basis: Vec<(usize, usize)> = Vec::new();
 
@@ -24,7 +24,26 @@ pub fn dual_simplex(maximize: bool, c: &matrix<f64>, a: &matrix<f64>, b: &matrix
 	pretty_print_array2(&tableau);
 	println!();
 
-	basis
+	let objective_value = if maximize {
+		tableau[(0,tableau.ncols() - 1)]
+	} else {
+		-tableau[(0,tableau.ncols() - 1)]
+	};
+	println!("The optimal objective value is: {objective_value}");
+	
+	let mut solution: Vec<(usize, f64)> = basis.iter()
+		.map(|x|
+			(x.1 + 1, tableau.column(tableau.ncols() - 1)[x.0])
+		).collect();
+	solution.sort_by_key(|&(i, _)| i);
+	println!("The optimal solution is given by the decision variables with values:");
+	for i in 1..=c.ncols() {
+		if solution.iter().any(|x| x.0 == i) {
+			println!("x_{i} = {}", solution.iter().find(|&&(index, _)| index == i).unwrap().1)
+		} else {
+			println!("x_{i} = 0");
+		}
+	}
 }
 
 fn iterations(tableau: &mut matrix<f64>) -> Vec<(usize, usize)> {
