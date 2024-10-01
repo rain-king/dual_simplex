@@ -14,9 +14,9 @@ pub fn dual_simplex(maximize: bool, c: &matrix<f64>, a: &matrix<f64>, b: &matrix
 	pretty_print_array2(&tableau);
 	println!();
 
-	tableau = initialize(!maximize, &b.t().to_owned(), &a, &c.t().to_owned(), true);
+	tableau = initialize(maximize, &c, &a, &b);
 	
-	basis = iterations(!maximize, &mut tableau);
+	basis = iterations(maximize, &mut tableau);
 	println!("The final tableau is:");
 	pretty_print_array2(&tableau);
 	println!();
@@ -28,15 +28,19 @@ fn iterations(maximize: bool, tableau: &mut matrix<f64>) -> Vec<(usize, usize)> 
 	let mut basis = initialize_basis(tableau.to_owned());
 
 	let mut iteration = 1;
-	while not_optimal(tableau) {
-		let (pivot_row_index, pivot_column_index) = pivot(tableau, maximize);
+	while not_feasible(tableau) {
+		let (pivot_row_index, pivot_column_index) = pivot(tableau, maximize, &basis);
 		for element in basis.iter_mut() {
-			// variable with pivot column enters, variable with pivot row exits
+			// variable with pivot row enters, variable with pivot column exits
 			if element.0 == pivot_row_index {
 				*element = (pivot_row_index, pivot_column_index);
 			}
 		}
-
+		
+		dbg!((pivot_row_index, pivot_column_index));
+		if iteration == 5 {
+			panic!();
+		}
 		println!("Iteration {iteration}");
 		pretty_print_array2(&tableau);
 		println!();
@@ -70,17 +74,16 @@ fn is_basic(column: vector<f64>) -> bool {
 	has_only_one_1 && everything_else_is_0
 }
 
-fn not_optimal(tableau: &mut matrix<f64>) -> bool {
+fn not_feasible(tableau: &mut matrix<f64>) -> bool {
 	tableau.column(tableau.ncols() - 1).slice(s![1..]).into_iter().any(|&x| x < 0.0)
 }
 
-fn pivot(tableau: &mut matrix<f64>, maximize: bool) -> (usize, usize) {
-	let (pivot_row_index, pivot_column_index) = pivot_indexes(tableau, maximize);
+fn pivot(tableau: &mut matrix<f64>, maximize: bool, basis: &Vec<(usize, usize)>) -> (usize, usize) {
+	let (pivot_row_index, pivot_column_index) = pivot_indexes(tableau, maximize, basis);
 
 	let normalization_scalar = tableau[(pivot_row_index, pivot_column_index)].to_owned();
-	tableau
-		.row_mut(pivot_row_index)
-		.map_inplace(|x| *x /= normalization_scalar);
+	
+	tableau.row_mut(pivot_row_index).map_inplace(|x| *x /= normalization_scalar);
 
 	let pivot_row = tableau.row(pivot_row_index).to_owned();
 	for mut row in tableau.rows_mut().into_iter() {
@@ -93,25 +96,31 @@ fn pivot(tableau: &mut matrix<f64>, maximize: bool) -> (usize, usize) {
 	(pivot_row_index, pivot_column_index)
 }
 
-fn pivot_indexes(tableau: &mut matrix<f64>, maximize: bool) -> (usize, usize) {
+fn pivot_indexes(tableau: &mut matrix<f64>, maximize: bool, basis: &Vec<(usize, usize)>) -> (usize, usize) {
 	let pivot_row_index = argmax(&tableau.column(0).slice(s![1..]).to_owned());
+	let mut basis_cols = basis.iter().map(|x| x.1).into_iter();
 
 	let mut pivot_column_index = 0 as usize;
-	let mut minimum = f64::INFINITY;
-	for (i, pivot_value) in tableau.column(pivot_row_index).into_iter().enumerate() {
-		if i > 0 {
-			let right_hand_side_value = tableau[(i, tableau.ncols() - 1)];
-			if *pivot_value > 0.0 {
-				let quotient = right_hand_side_value / pivot_value;
-				if quotient < minimum {
-					minimum = quotient;
-					pivot_column_index = i;
+	let mut optimal_quotient = if maximize { f64::INFINITY } else { f64::NEG_INFINITY };
+	for (j, pivot_value) in tableau.row(pivot_column_index).into_iter().enumerate() {
+		if j < tableau.ncols() - 1 && !(basis_cols.any(|c| c == j)) {
+			let z_j_minus_c_j = tableau[(0, j)];
+			let pivot_column_condition = if maximize { *pivot_value < 0.0 } else { *pivot_value > 0.0 };
+			if pivot_column_condition {
+				let quotient_condition = if maximize {
+					(z_j_minus_c_j / pivot_value).abs() < optimal_quotient 
+				} else {
+					(z_j_minus_c_j / pivot_value).abs() > optimal_quotient
+				};
+				if quotient_condition {
+					optimal_quotient = z_j_minus_c_j / pivot_value;
+					pivot_column_index = j;
 				}
 			}
 		}
 	}
 
-	(pivot_column_index, pivot_row_index)
+	(pivot_row_index, pivot_column_index)
 }
 
 fn argmin(arr: vector<f64>) -> usize {
