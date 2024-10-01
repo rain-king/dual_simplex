@@ -27,8 +27,16 @@ pub fn dual_simplex(maximize: bool, c: &matrix<f64>, a: &matrix<f64>, b: &matrix
 fn iterations(maximize: bool, tableau: &mut matrix<f64>) -> Vec<(usize, usize)> {
 	let mut basis = initialize_basis(tableau.to_owned());
 
-	let mut iteration = 1;
+	let mut iteration = 0;
 	while not_feasible(tableau) {
+		println!("Iteration {iteration}");
+		pretty_print_array2(&tableau);
+		println!();
+		
+		if iteration == 5 {
+			panic!();
+		}
+		
 		let (pivot_row_index, pivot_column_index) = pivot(tableau, maximize, &basis);
 		for element in basis.iter_mut() {
 			// variable with pivot row enters, variable with pivot column exits
@@ -36,14 +44,6 @@ fn iterations(maximize: bool, tableau: &mut matrix<f64>) -> Vec<(usize, usize)> 
 				*element = (pivot_row_index, pivot_column_index);
 			}
 		}
-		
-		dbg!((pivot_row_index, pivot_column_index));
-		if iteration == 5 {
-			panic!();
-		}
-		println!("Iteration {iteration}");
-		pretty_print_array2(&tableau);
-		println!();
 
 		iteration += 1;
 	}
@@ -97,16 +97,15 @@ fn pivot(tableau: &mut matrix<f64>, maximize: bool, basis: &Vec<(usize, usize)>)
 }
 
 fn pivot_indexes(tableau: &mut matrix<f64>, maximize: bool, basis: &Vec<(usize, usize)>) -> (usize, usize) {
-	let pivot_row_index = argmax(&tableau.column(0).slice(s![1..]).to_owned());
+	let pivot_row_index = argmin(&tableau.column(tableau.ncols() - 1).slice(s![1..]).to_owned()) + 1;
 	let mut basis_cols = basis.iter().map(|x| x.1).into_iter();
 
 	let mut pivot_column_index = 0 as usize;
 	let mut optimal_quotient = if maximize { f64::INFINITY } else { f64::NEG_INFINITY };
-	for (j, pivot_value) in tableau.row(pivot_column_index).into_iter().enumerate() {
+	for (j, pivot_value) in tableau.row(pivot_row_index).into_iter().enumerate() {
 		if j < tableau.ncols() - 1 && !(basis_cols.any(|c| c == j)) {
 			let z_j_minus_c_j = tableau[(0, j)];
-			let pivot_column_condition = if maximize { *pivot_value < 0.0 } else { *pivot_value > 0.0 };
-			if pivot_column_condition {
+			if *pivot_value < 0.0 {
 				let quotient_condition = if maximize {
 					(z_j_minus_c_j / pivot_value).abs() < optimal_quotient 
 				} else {
@@ -123,13 +122,13 @@ fn pivot_indexes(tableau: &mut matrix<f64>, maximize: bool, basis: &Vec<(usize, 
 	(pivot_row_index, pivot_column_index)
 }
 
-fn argmin(arr: vector<f64>) -> usize {
+fn argmin(arr: &vector<f64>) -> usize {
 	let mut min = f64::INFINITY;
 	let mut argmin: usize = 0;
 
 	for (i, value) in arr.into_iter().enumerate() {
-		if value < min {
-			min = value;
+		if *value < min {
+			min = *value;
 			argmin = i;
 		}
 	}
