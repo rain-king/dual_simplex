@@ -128,18 +128,13 @@ fn pivot_indexes(tableau: &mut matrix<f64>, basis: &Vec<(usize, usize)>) -> (usi
 	let mut basis_cols = basis.iter().map(|x| x.1).into_iter();
 
 	let mut pivot_column_index = 0;
-	let mut optimal_quotient = if true {f64::INFINITY} else {f64::NEG_INFINITY};
+	let mut optimal_quotient = f64::INFINITY;
 	for (j, &pivot_value) in tableau.row(pivot_row_index).into_iter().enumerate() {
-		if j < tableau.ncols() - 1 && !(basis_cols.any(|c| c == j)) {
-			let z_j_minus_c_j = tableau[(0, j)];
-			let pivot_column_condition = pivot_value < 0.0;
-			
-			if pivot_column_condition {
-				let current_quotient_abs = (z_j_minus_c_j / pivot_value).abs();
-				if current_quotient_abs < optimal_quotient {
-					optimal_quotient = current_quotient_abs;
-					pivot_column_index = j;
-				}
+		if j < tableau.ncols() - 1 && !(basis_cols.any(|c| c == j)) && pivot_value < 0.0 {
+			let current_quotient_abs = (tableau[(0, j)] / pivot_value).abs();
+			if current_quotient_abs < optimal_quotient {
+				optimal_quotient = current_quotient_abs;
+				pivot_column_index = j;
 			}
 		}
 	}
