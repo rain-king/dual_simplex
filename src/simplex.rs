@@ -6,7 +6,6 @@ use preparation::{original_tableau, initialize};
 
 pub fn dual_simplex(maximize: bool, c: &matrix<f64>, a: &matrix<f64>, b: &matrix<f64>) {
 	let mut tableau: matrix<f64>;
-	let mut basis: Vec<(usize, usize)> = Vec::new();
 
 	println!();
 	tableau = original_tableau(maximize, &c, &a, &b);
@@ -19,7 +18,7 @@ pub fn dual_simplex(maximize: bool, c: &matrix<f64>, a: &matrix<f64>, b: &matrix
 	
 	dbg!(dual_problem);
 	
-	basis = iterations(&mut tableau);
+	let basis = iterations(&mut tableau);
 	println!("The final tableau is:");
 	pretty_print_array2(&tableau);
 	println!();
@@ -125,7 +124,7 @@ fn pivot_indexes(tableau: &mut matrix<f64>, basis: &Vec<(usize, usize)>) -> (usi
 		panic!("!!! The problem has no feasible solution.")
 	}
 	
-	let mut basis_cols = basis.iter().map(|x| x.1).into_iter();
+	let mut basis_cols = basis.iter().map(|x| x.1);
 
 	let mut pivot_column_index = 0;
 	let mut optimal_quotient = f64::INFINITY;
