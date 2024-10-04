@@ -30,19 +30,36 @@ pub fn dual_simplex(maximize: bool, c: &matrix<f64>, a: &matrix<f64>, b: &matrix
 	};
 	println!("The optimal objective value is: {objective_value}");
 	
-	let mut solution: Vec<(usize, f64)> = basis.iter()
-		.map(|x|
-			(x.1 + 1, tableau.column(tableau.ncols() - 1)[x.0])
-		).collect();
-	solution.sort_by_key(|&(i, _)| i);
-	println!("The optimal solution is given by the decision variables with values:");
-	for i in 1..=c.ncols() {
-		if solution.iter().any(|x| x.0 == i) {
-			println!("x_{i} = {}", solution.iter().find(|&&(index, _)| index == i).unwrap().1)
-		} else {
-			println!("x_{i} = 0");
+	if dual_problem {
+		let solution_columns = a.nrows()..(a.nrows() + a.ncols());
+		let mut solution_values: Vec<(usize, f64)> = Vec::new();
+		let mut i: usize = 1;
+		for j in solution_columns {
+			solution_values.push((i, tableau[(0,j)]));
+			i += 1;
+		}
+		
+		println!("The optimal solution is given by the decision variables with values:");
+		
+		for (i, value) in solution_values {
+			println!("x{i} = {}", if maximize {-value} else {value});
+		}
+	} else {
+		let mut solution: Vec<(usize, f64)> = basis.iter()
+			.map(|x|
+				(x.1 + 1, tableau.column(tableau.ncols() - 1)[x.0])
+			).collect();
+		solution.sort_by_key(|&(i, _)| i);
+		
+		for i in 1..=c.ncols() {
+			if solution.iter().any(|x| x.0 == i) {
+				println!("x_{i} = {}", solution.iter().find(|&&(index, _)| index == i).unwrap().1)
+			} else {
+				println!("x_{i} = 0");
+			}
 		}
 	}
+	println!();
 }
 
 fn iterations(tableau: &mut matrix<f64>) -> Vec<(usize, usize)> {
