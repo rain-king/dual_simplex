@@ -1,3 +1,6 @@
+# Temporal Warning: FIX ME
+On problems that get transposed to its dual problem, it gives the answers of the dual problem and not of the original problem!
+
 # What it does
 - This program solves linear programming problems in exactly the following form:
 Maximizing or minimizing $Z(x) = c\dot x$ subject to the constraints $$Ax \leq b$$, with $x \geq 0$.
