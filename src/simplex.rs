@@ -18,7 +18,7 @@ pub fn dual_simplex(maximize: bool, c: &matrix<f64>, a: &matrix<f64>, b: &matrix
 	
 	dbg!(dual_problem);
 	
-	let basis = iterations(&mut tableau);
+	let basis = iterations(&mut tableau, 1000);
 	println!("The final tableau is:");
 	pretty_print_array2(&tableau);
 	println!();
@@ -62,7 +62,7 @@ pub fn dual_simplex(maximize: bool, c: &matrix<f64>, a: &matrix<f64>, b: &matrix
 	println!();
 }
 
-fn iterations(tableau: &mut matrix<f64>) -> Vec<(usize, usize)> {
+fn iterations(tableau: &mut matrix<f64>, max_iterations: usize) -> Vec<(usize, usize)> {
 	let mut basis = initialize_basis(tableau.to_owned());
 
 	let mut iteration = 0;
@@ -79,7 +79,7 @@ fn iterations(tableau: &mut matrix<f64>) -> Vec<(usize, usize)> {
 			}
 		}
 		
-		if iteration == 5 {
+		if iteration == max_iterations {
 			break;
 		}
 		
